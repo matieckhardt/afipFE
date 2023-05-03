@@ -3,11 +3,11 @@ import fs from "fs";
 
 const routeCerts = "./src/assets/certs";
 
-const index = async (req, res) => {
+export const index = async (req, res) => {
   return res.status(400).json({ msg: "Index Route" });
 };
 
-const saveCert = (req, res) => {
+export const saveCert = (req, res) => {
   const { cert, key } = req.body;
 
   fs.writeFile(`${routeCerts}/cert`, cert, (err) => {
@@ -23,25 +23,21 @@ const saveCert = (req, res) => {
   return res.status(200).json({ msg: "Certs Updated" });
 };
 
-const salesPoint = async (req, res) => {
-  const { cuit, production } = req.query;
+export const salesPoint = async (req, res) => {
+  const afip = createAfipInstance(req.query);
 
   try {
-    const points = await getPoints(cuit, production);
+    const points = await afip.ElectronicBilling.getSalesPoints();
     return res.status(200).json(points);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
 };
 
-const lastVoucher = async (req, res) => {
-  const { cuit, production, salesPoint, invoiceType } = req.query;
+export const lastVoucher = async (req, res) => {
+  const { salesPoint, invoiceType } = req.query;
 
-  const afip = new Afip({
-    CUIT: cuit,
-    production: production === "true" ? true : false,
-    res_folder: routeCerts,
-  });
+  const afip = createAfipInstance(req.query);
 
   try {
     const lastVoucher = await afip.ElectronicBilling.getLastVoucher(
@@ -54,7 +50,18 @@ const lastVoucher = async (req, res) => {
   }
 };
 
-const store = async (req, res) => {
+export const serverStatus = async (req, res) => {
+  const afip = createAfipInstance(req.query);
+
+  try {
+    const serverStatus = await afip.ElectronicBilling.getServerStatus();
+    return res.status(200).json(serverStatus);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+export const store = async (req, res) => {
   const {
     ptoVta,
     cbteTipo, // Tipo de comprobante (ver tipos disponibles)
@@ -68,9 +75,9 @@ const store = async (req, res) => {
     impIVA, //Importe total de IVA
     impTrib, //Importe total de tributos
     iva, // Alícuotas asociadas al comprobante
+    cbteDesde,
+    cbteHasta,
   } = req.body;
-
-  const { cuit, production } = req.query;
 
   const dateNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
@@ -83,39 +90,27 @@ const store = async (req, res) => {
     MonCotiz: 1,
   };
 
-  const afip = new Afip({
-    CUIT: cuit,
-    production: production === "true" ? true : false,
-    res_folder: routeCerts,
-  });
+  const afip = createAfipInstance(req.query);
+  let dataToSend = {
+    ...invoiceDataDefault,
+    PtoVta: ptoVta,
+    CbteTipo: cbteTipo,
+    Concepto: concepto,
+    DocTipo: docTipo,
+    DocNro: docNro,
+    ImpTotal: impTotal,
+    ImpTotConc: impTotConc,
+    ImpNeto: impNeto,
+    ImpOpEx: impOpEx,
+    ImpIVA: impIVA,
+    ImpTrib: impTrib,
+    CbteDesde: cbteDesde,
+    CbteHasta: cbteHasta,
+    Iva: iva,
+  };
 
   try {
-    const lastVoucher = await afip.ElectronicBilling.getLastVoucher(
-      ptoVta,
-      cbteTipo
-    );
-
-    invoiceDataDefault.CbteDesde = lastVoucher + 1;
-    invoiceDataDefault.CbteHasta = lastVoucher + 1;
-
-    const data = await afip.ElectronicBilling.createVoucher(
-      {
-        ...invoiceDataDefault,
-        PtoVta: ptoVta,
-        CbteTipo: cbteTipo,
-        Concepto: concepto,
-        DocTipo: docTipo,
-        DocNro: docNro,
-        ImpTotal: impTotal,
-        ImpTotConc: impTotConc,
-        ImpNeto: impNeto,
-        ImpOpEx: impOpEx,
-        ImpIVA: impIVA,
-        ImpTrib: impTrib,
-        Iva: iva,
-      },
-      true
-    );
+    const data = await afip.ElectronicBilling.createVoucher(dataToSend, true);
     console.log("Invoice Created");
     console.log(data);
     return res.status(200).json(data);
@@ -124,14 +119,10 @@ const store = async (req, res) => {
   }
 };
 
-async function getPoints(cuit, production) {
-  const afip = new Afip({
+const createAfipInstance = ({ cuit, production }) => {
+  return new Afip({
     CUIT: cuit,
     production: production === "true" ? true : false,
     res_folder: routeCerts,
   });
-
-  return await afip.ElectronicBilling.getSalesPoints();
-}
-
-export { index, store, salesPoint, saveCert, lastVoucher };
+};
