@@ -1,5 +1,6 @@
 import Afip from "@afipsdk/afip.js";
 import fs from "fs";
+import Invoice from "./../models/invoice";
 
 const routeCerts = "./src/assets/certs";
 
@@ -83,37 +84,40 @@ export const store = async (req, res) => {
     .toISOString()
     .split("T")[0];
 
-  const invoiceDataDefault = {
-    CantReg: 1,
-    CbteFch: parseInt(dateNow.replace(/-/g, "")),
-    MonId: "PES",
-    MonCotiz: 1,
-  };
-
   const afip = createAfipInstance(req.query);
-  let dataToSend = {
-    ...invoiceDataDefault,
-    PtoVta: ptoVta,
+  let invoiceData = {
+    CantReg: 1,
+    CbteDesde: cbteDesde,
+    CbteFch: parseInt(dateNow.replace(/-/g, "")),
+    CbteHasta: cbteHasta,
     CbteTipo: cbteTipo,
     Concepto: concepto,
-    DocTipo: docTipo,
     DocNro: docNro,
-    ImpTotal: impTotal,
-    ImpTotConc: impTotConc,
+    DocTipo: docTipo,
+    ImpIVA: impIVA,
     ImpNeto: impNeto,
     ImpOpEx: impOpEx,
-    ImpIVA: impIVA,
+    ImpTotal: impTotal,
+    ImpTotConc: impTotConc,
     ImpTrib: impTrib,
-    CbteDesde: cbteDesde,
-    CbteHasta: cbteHasta,
     Iva: iva,
+    MonCotiz: 1,
+    MonId: "PES",
+    PtoVta: ptoVta,
   };
 
   try {
-    const data = await afip.ElectronicBilling.createVoucher(dataToSend, true);
-    console.log("Invoice Created");
+    console.log("Invoice To Send");
+    console.log(invoiceData);
+    const data = await afip.ElectronicBilling.createVoucher(
+      JSON.parse(JSON.stringify(invoiceData)),
+      true
+    );
+    console.log("Response AFIP");
     console.log(data);
-    return res.status(200).json(data);
+    const invoice = await Invoice.create({ ...invoiceData, ...data });
+    console.log("Invoice Save in DB");
+    return res.status(200).json(invoice);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
