@@ -119,10 +119,14 @@ export const store = async (req, res) => {
   }
 };
 
-const createAfipInstance = ({ cuit, production }) => {
-  return new Afip({
+const createAfipInstance = ({ cuit, production, token }) => {
+  let afipData = {
     CUIT: cuit,
     production: production === "true" ? true : false,
     res_folder: routeCerts,
-  });
+  };
+
+  if (production === "true")
+    return new Afip({ ...afipData, access_token: token });
+  return new Afip(afipData);
 };
