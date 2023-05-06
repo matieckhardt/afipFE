@@ -1,6 +1,7 @@
 import Afip from "@afipsdk/afip.js";
-import fs from "fs";
 import Invoice from "./../models/invoice";
+import fs from "fs";
+import path from "path";
 
 const routeCerts = "./src/assets/certs";
 
@@ -10,6 +11,11 @@ export const index = async (req, res) => {
 
 export const saveCert = (req, res) => {
   const { cert, key } = req.body;
+
+  // Crea las subcarpetas si no existen
+  if (!fs.existsSync(routeCerts)) {
+    fs.mkdirSync(routeCerts, { recursive: true });
+  }
 
   fs.writeFile(`${routeCerts}/cert`, cert, (err) => {
     if (err) throw err;
