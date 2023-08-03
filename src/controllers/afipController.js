@@ -112,9 +112,18 @@ export const store = async (req, res) => {
     MonId: "PES",
     PtoVta: ptoVta,
     CbtesAsoc: CbtesAsoc,
-    FchServDesde: parseInt(dateNow.replace(/-/g, "")),
-    FchServHasta: parseInt(dateNow.replace(/-/g, "")),
-    FchVtoPago: parseInt(dateNow.replace(/-/g, "")),
+    FchServDesde:
+      concepto === 2 || concepto === 3
+        ? parseInt(dateNow.replace(/-/g, ""))
+        : null,
+    FchServHasta:
+      concepto === 2 || concepto === 3
+        ? parseInt(dateNow.replace(/-/g, ""))
+        : null,
+    FchVtoPago:
+      concepto === 2 || concepto === 3
+        ? parseInt(dateNow.replace(/-/g, ""))
+        : null,
   };
   try {
     console.log("Invoice To Send");
