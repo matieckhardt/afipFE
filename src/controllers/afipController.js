@@ -84,6 +84,7 @@ export const store = async (req, res) => {
     iva, // Alícuotas asociadas al comprobante
     cbteDesde,
     cbteHasta,
+    CbtesAsoc,
   } = req.body;
 
   const dateNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -110,8 +111,11 @@ export const store = async (req, res) => {
     MonCotiz: 1,
     MonId: "PES",
     PtoVta: ptoVta,
+    CbtesAsoc: CbtesAsoc,
+    FchServDesde: parseInt(dateNow.replace(/-/g, "")),
+    FchServHasta: parseInt(dateNow.replace(/-/g, "")),
+    FchVtoPago: parseInt(dateNow.replace(/-/g, "")),
   };
-
   try {
     console.log("Invoice To Send");
     console.log(invoiceData);
@@ -125,6 +129,7 @@ export const store = async (req, res) => {
     console.log("Invoice Save in DB");
     return res.status(200).json(invoice);
   } catch (error) {
+    console.log(error);
     return res.status(400).json({ error: error.message });
   }
 };
